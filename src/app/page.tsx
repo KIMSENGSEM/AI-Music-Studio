@@ -295,6 +295,7 @@ export default function StudioApp() {
           onTogglePlay={() => setIsPlaying(!isPlaying)}
           onSaveProject={() => alert('Project saved locally to workspace state!')}
           onExportClick={() => setActiveTab('midi-to-sty')}
+          onConvertToMidiClick={() => setActiveTab('audio-to-midi')}
         />
 
         <main className="p-4 md:p-6 space-y-6 overflow-y-auto max-h-[calc(100vh-64px)]">
@@ -306,6 +307,7 @@ export default function StudioApp() {
                 isAnalyzing={project.isAnalyzing}
                 analysisProgress={project.analysisProgress}
                 onStartAnalysis={handleStartAnalysis}
+                onNavigateToEditor={() => setActiveTab('midi-editor')}
               />
 
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">

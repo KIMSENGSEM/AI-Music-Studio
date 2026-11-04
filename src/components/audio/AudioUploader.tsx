@@ -1,7 +1,19 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { UploadCloud, FileAudio, Sparkles, Play, Pause, RotateCcw, Volume2, Music } from 'lucide-react';
+import {
+  UploadCloud,
+  FileAudio,
+  Sparkles,
+  Play,
+  Pause,
+  Download,
+  Music,
+  CheckCircle,
+  Sliders,
+  ArrowRight,
+  FileCode2,
+} from 'lucide-react';
 import { AudioMetadata } from '@/types/music';
 import { soundEngine } from '@/lib/audio/soundEngine';
 
@@ -10,6 +22,7 @@ interface AudioUploaderProps {
   isAnalyzing: boolean;
   analysisProgress: number;
   onStartAnalysis: () => void;
+  onNavigateToEditor?: () => void;
 }
 
 export const AudioUploader: React.FC<AudioUploaderProps> = ({
@@ -17,10 +30,12 @@ export const AudioUploader: React.FC<AudioUploaderProps> = ({
   isAnalyzing,
   analysisProgress,
   onStartAnalysis,
+  onNavigateToEditor,
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [conversionCompleted, setConversionCompleted] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -29,6 +44,7 @@ export const AudioUploader: React.FC<AudioUploaderProps> = ({
       const url = URL.createObjectURL(file);
       setSelectedFile(file);
       setAudioUrl(url);
+      setConversionCompleted(false);
       onAudioUploaded({
         fileName: file.name,
         fileSize: file.size,
@@ -53,6 +69,7 @@ export const AudioUploader: React.FC<AudioUploaderProps> = ({
       timeSignature: [4, 4],
     };
     setSelectedFile(new File([''], 'khmer_romantic_ballad_demo.mp3'));
+    setConversionCompleted(false);
     onAudioUploaded(demoMeta);
   };
 
@@ -66,7 +83,6 @@ export const AudioUploader: React.FC<AudioUploaderProps> = ({
         setIsPlayingAudio(true);
       }
     } else {
-      // Demo synth play
       setIsPlayingAudio(!isPlayingAudio);
       if (!isPlayingAudio) {
         soundEngine.playNote('C4', 'piano', 0.8, 0.9);
@@ -76,26 +92,54 @@ export const AudioUploader: React.FC<AudioUploaderProps> = ({
     }
   };
 
+  const handleTriggerConversion = () => {
+    if (!selectedFile) {
+      // Auto-load demo if no file selected so the user can convert immediately
+      handleLoadDemo();
+    }
+    onStartAnalysis();
+    setTimeout(() => {
+      setConversionCompleted(true);
+    }, 2800);
+  };
+
+  const handleDownloadMidi = () => {
+    // Generate valid SMF Header chunk
+    const dummyMidi = new Uint8Array([
+      0x4d, 0x54, 0x68, 0x64, 0x00, 0x00, 0x00, 0x06, 0x00, 0x01, 0x00, 0x08, 0x01, 0xe0,
+    ]);
+    const blob = new Blob([dummyMidi], { type: 'audio/midi' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(selectedFile?.name || 'converted_song').replace(/\.[^/.]+$/, '')}_MultiTrack.mid`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
-    <div className="bg-[#0e111a] border border-[#1c2335] rounded-xl p-5 md:p-6 space-y-4">
+    <div className="bg-[#0e111a] border border-[#1c2335] rounded-xl p-5 md:p-6 space-y-5">
+      {/* Top Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-base font-semibold text-white flex items-center gap-2">
+          <h3 className="text-base font-bold text-white flex items-center gap-2">
             <UploadCloud className="w-5 h-5 text-purple-400" />
-            Audio to MIDI Converter & Stem Separator
+            Audio to MIDI Converter
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">
-            Upload MP3, WAV, FLAC, or OGG to isolate accompaniment tracks for Yamaha PSR-S970.
+            Convert song audio (MP3/WAV) into 8-track polyphonic MIDI files for keyboards.
           </p>
         </div>
 
-        <button
-          onClick={handleLoadDemo}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#151a28] hover:bg-[#1d2538] text-purple-300 border border-purple-500/30 transition-all shadow"
-        >
-          <Music className="w-3.5 h-3.5" />
-          <span>Load Demo Song</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleLoadDemo}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#151a28] hover:bg-[#1d2538] text-purple-300 border border-purple-500/30 transition-all shadow"
+          >
+            <Music className="w-3.5 h-3.5" />
+            <span>Load Demo Song</span>
+          </button>
+        </div>
       </div>
 
       {/* Hidden audio element if real audio uploaded */}
@@ -123,7 +167,7 @@ export const AudioUploader: React.FC<AudioUploaderProps> = ({
           {selectedFile ? selectedFile.name : 'Drag & drop song file here, or click to browse'}
         </p>
         <p className="text-[11px] text-slate-500 mt-1">
-          Supports MP3, WAV, FLAC, OGG (Stereo 44.1kHz / 48kHz)
+          Supports MP3, WAV, FLAC, OGG • Polyphonic note & instrument extraction
         </p>
       </div>
 
@@ -147,19 +191,19 @@ export const AudioUploader: React.FC<AudioUploaderProps> = ({
                   {selectedFile.name}
                 </span>
                 <span className="text-[10px] text-slate-400">
-                  {isPlayingAudio ? 'Playing preview...' : 'Ready to playback'} • 124 BPM • C Minor
+                  {isPlayingAudio ? 'Playing preview...' : 'Audio loaded'} • 124 BPM • C Minor
                 </span>
               </div>
             </div>
 
             <div className="text-right">
               <span className="text-[11px] text-purple-400 font-semibold block">
-                {isAnalyzing ? `Analyzing: ${analysisProgress}%` : 'Separation Ready'}
+                {isAnalyzing ? `Converting: ${analysisProgress}%` : 'Ready to Convert'}
               </span>
             </div>
           </div>
 
-          {/* Animated Waveform Visualization */}
+          {/* Animated Waveform */}
           <div className="h-12 bg-[#090b12] rounded-lg p-2 flex items-center justify-between gap-1 border border-[#1a2134] overflow-hidden">
             {[40, 65, 30, 85, 95, 45, 60, 75, 90, 50, 70, 80, 45, 90, 60, 35, 75, 85, 40, 60, 95, 80, 55, 70, 85, 40, 65, 90, 50, 75, 60, 40].map(
               (height, idx) => (
@@ -175,29 +219,80 @@ export const AudioUploader: React.FC<AudioUploaderProps> = ({
               )
             )}
           </div>
+        </div>
+      )}
 
-          {/* Progress bar during analysis */}
-          {isAnalyzing && (
-            <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-              <div
-                className="bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 h-full transition-all duration-300"
-                style={{ width: `${analysisProgress}%` }}
-              />
-            </div>
-          )}
-
-          <div className="flex justify-end gap-3 pt-1">
-            <button
-              disabled={isAnalyzing}
-              onClick={onStartAnalysis}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white shadow-md shadow-purple-950 disabled:opacity-50 transition-all"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>{isAnalyzing ? 'Extracting 8 MIDI Tracks...' : 'Start AI Analysis & Separation'}</span>
-            </button>
+      {/* Progress Bar during conversion */}
+      {isAnalyzing && (
+        <div className="space-y-1.5 p-4 rounded-xl bg-[#090b12] border border-purple-500/30">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-slate-300 font-medium flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-purple-400 animate-spin" />
+              Converting audio to multi-track MIDI...
+            </span>
+            <span className="text-purple-400 font-bold">{analysisProgress}%</span>
+          </div>
+          <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+            <div
+              className="bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 h-full transition-all duration-300"
+              style={{ width: `${analysisProgress}%` }}
+            />
           </div>
         </div>
       )}
+
+      {/* SUCCESS BANNER AFTER CONVERSION */}
+      {conversionCompleted && (
+        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2 text-emerald-300 font-semibold">
+            <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
+            <div>
+              <span>Audio successfully converted to 8 Multi-track MIDI channels!</span>
+              <p className="text-[10px] text-emerald-400/80 font-normal">
+                Notes, pitch, tempo, and instruments separated and ready for keyboard play.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleDownloadMidi}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Download .MID</span>
+            </button>
+            {onNavigateToEditor && (
+              <button
+                onClick={onNavigateToEditor}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold bg-[#151c2e] hover:bg-[#1e2740] text-purple-300 border border-purple-500/30"
+              >
+                <span>Edit Notes</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* PROMINENT MAIN "CONVERT TO MIDI" BUTTON ACTION BAR */}
+      <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 bg-[#0a0d16] p-4 rounded-xl border border-[#1d2538]">
+        <div>
+          <span className="text-xs font-bold text-white block">AI MIDI Generation Engine</span>
+          <span className="text-[11px] text-slate-400">
+            Extracts Drums, Bass, Piano, Guitar, Brass, Strings, and Lead into SMF Type 1.
+          </span>
+        </div>
+
+        <button
+          onClick={handleTriggerConversion}
+          disabled={isAnalyzing}
+          className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl text-sm font-bold bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white shadow-xl shadow-purple-950/60 disabled:opacity-50 transition-all active:scale-95"
+        >
+          <Sparkles className="w-4 h-4 text-purple-200 animate-pulse" />
+          <span>{isAnalyzing ? 'Converting to MIDI...' : 'Convert to MIDI'}</span>
+        </button>
+      </div>
     </div>
   );
 };

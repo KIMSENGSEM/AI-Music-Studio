@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Play, Pause, Save, Download, Sparkles } from 'lucide-react';
+import { Play, Pause, Save, Download, Sparkles, Music } from 'lucide-react';
 import { ProjectState } from '@/types/music';
 
 interface HeaderProps {
@@ -10,6 +10,7 @@ interface HeaderProps {
   onTogglePlay: () => void;
   onSaveProject: () => void;
   onExportClick: () => void;
+  onConvertToMidiClick?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -18,6 +19,7 @@ export const Header: React.FC<HeaderProps> = ({
   onTogglePlay,
   onSaveProject,
   onExportClick,
+  onConvertToMidiClick,
 }) => {
   return (
     <header className="min-h-16 bg-[#0a0c13] border-b border-[#191f30] px-4 md:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 shrink-0">
@@ -65,6 +67,16 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Action buttons */}
       <div className="flex items-center gap-2">
+        {onConvertToMidiClick && (
+          <button
+            onClick={onConvertToMidiClick}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#151c2e] hover:bg-[#1f2842] text-purple-300 border border-purple-500/40 shadow transition-all"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+            <span>Convert to MIDI</span>
+          </button>
+        )}
+
         <button
           onClick={onSaveProject}
           className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#131826] hover:bg-[#1a2133] text-slate-300 border border-[#222a3e] transition-colors"
@@ -75,7 +87,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         <button
           onClick={onExportClick}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-lg shadow-purple-900/30 transition-all"
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-lg shadow-purple-900/30 transition-all"
         >
           <Download className="w-3.5 h-3.5" />
           <span>Export .STY</span>
