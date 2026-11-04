@@ -1,0 +1,88 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String?   @unique
+  googleId      String?   @unique
+  telegramId    String?   @unique
+  name          String?
+  avatarUrl     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  projects      Project[]
+}
+
+model Project {
+  id              String         @id @default(cuid())
+  userId          String
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title           String
+  description     String?
+  targetKeyboard  String         @default("Yamaha PSR-S970")
+  bpm             Float          @default(120.0)
+  keySignature    String         @default("C Major")
+  timeSignature   String         @default("4/4")
+  audioUrl        String?
+  audioFileName   String?
+  audioFileSize   Int?
+  audioFormat     String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  tracks          MidiTrack[]
+  sections        StyleSection[]
+  jobs            Job[]
+}
+
+model MidiTrack {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  trackNumber Int
+  name        String
+  category    String   // drums, bass, piano, guitar, brass, strings, lead, synth
+  channel     Int      // 0 - 15 (MIDI 1-16)
+  stylePart   String   // Rhythm 1, Rhythm 2, Bass, Chord 1, Chord 2, Pad, Phrase 1, Phrase 2
+  volume      Int      @default(80)
+  pan         Int      @default(0)
+  isMuted     Boolean  @default(false)
+  isSolo      Boolean  @default(false)
+  color       String   @default("#8b5cf6")
+  notesJson   Json     // Stored note events
+}
+
+model StyleSection {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String   // Intro A, Main A, Fill In A, Ending A, etc.
+  startBar    Int      @default(1)
+  barsLength  Int      @default(4)
+  isActive    Boolean  @default(true)
+}
+
+enum JobStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model Job {
+  id          String    @id @default(cuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type        String    // STEM_SEPARATION, AUDIO_TO_MIDI, STY_GENERATION
+  status      JobStatus @default(QUEUED)
+  progress    Int       @default(0)
+  errorMessage String?
+  resultUrl   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
