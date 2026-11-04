@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { TrackData, MidiNote } from '@/types/music';
-import { Plus, Trash2, ZoomIn, ZoomOut, Grid } from 'lucide-react';
+import { Plus, Trash2, ZoomIn, ZoomOut, Grid, Volume2 } from 'lucide-react';
+import { soundEngine } from '@/lib/audio/soundEngine';
 
 interface PianoRollEditorProps {
   track: TrackData | null;
@@ -20,6 +21,7 @@ export const PianoRollEditor: React.FC<PianoRollEditorProps> = ({
 }) => {
   const [quantize, setQuantize] = useState<'1/4' | '1/8' | '1/16' | '1/32'>('1/16');
   const [zoom, setZoom] = useState<number>(1);
+  const [activeAuditionNote, setActiveAuditionNote] = useState<string | null>(null);
 
   if (!track) {
     return (
@@ -29,11 +31,18 @@ export const PianoRollEditor: React.FC<PianoRollEditorProps> = ({
     );
   }
 
+  const handleAuditionKey = (pitchName: string) => {
+    setActiveAuditionNote(pitchName);
+    soundEngine.playNote(pitchName, track.category, 0.4, 0.85);
+    setTimeout(() => setActiveAuditionNote(null), 300);
+  };
+
   const handleAddNote = (pitchName: string, barIndex: number) => {
+    handleAuditionKey(pitchName);
     const newNote: MidiNote = {
       id: `note-${Date.now()}-${Math.random()}`,
       name: pitchName,
-      midi: 60, // default pitch
+      midi: 60,
       time: barIndex * 0.5,
       duration: 0.5,
       velocity: 0.8,
@@ -48,10 +57,10 @@ export const PianoRollEditor: React.FC<PianoRollEditorProps> = ({
   return (
     <div className="bg-[#0e111a] border border-[#1c2335] rounded-xl overflow-hidden flex flex-col">
       {/* Piano Roll Toolbar */}
-      <div className="p-4 border-b border-[#1c2335] flex items-center justify-between bg-[#0a0d16]">
+      <div className="p-4 border-b border-[#1c2335] flex flex-wrap items-center justify-between gap-3 bg-[#0a0d16]">
         <div className="flex items-center gap-3">
           <div
-            className="w-3.5 h-3.5 rounded-full"
+            className="w-3.5 h-3.5 rounded-full shrink-0"
             style={{ backgroundColor: track.color }}
           />
           <div>
@@ -59,16 +68,16 @@ export const PianoRollEditor: React.FC<PianoRollEditorProps> = ({
               Piano Roll: {track.name}
             </h4>
             <span className="text-[11px] text-slate-400">
-              Assigned to {track.stylePart} (Ch {track.channel + 1})
+              Assigned to {track.stylePart} (Ch {track.channel + 1}) • Click keys to audition sound
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 text-xs">
+        <div className="flex items-center gap-2.5 text-xs">
           {/* Quantization */}
           <div className="flex items-center gap-1.5 bg-[#121624] px-2.5 py-1 rounded-lg border border-[#20293f]">
             <Grid className="w-3.5 h-3.5 text-slate-400" />
-            <span className="text-slate-400">Snap:</span>
+            <span className="text-slate-400 hidden sm:inline">Snap:</span>
             <select
               value={quantize}
               onChange={(e) => setQuantize(e.target.value as any)}
@@ -109,17 +118,23 @@ export const PianoRollEditor: React.FC<PianoRollEditorProps> = ({
           <div className="w-16 shrink-0 sticky left-0 z-20 bg-[#0c0f18] border-r border-[#1e2538] shadow-lg">
             {PITCHES.map((pitch) => {
               const isSharp = pitch.includes('#');
+              const isAuditioning = activeAuditionNote === pitch;
               return (
-                <div
+                <button
                   key={pitch}
-                  className={`h-7 px-2 text-[10px] font-mono flex items-center justify-end border-b select-none ${
-                    isSharp
-                      ? 'bg-[#121624] text-slate-300 border-[#1d2438]'
-                      : 'bg-[#181f30] text-slate-100 font-bold border-[#20293e]'
+                  onClick={() => handleAuditionKey(pitch)}
+                  className={`w-full h-7 px-2 text-[10px] font-mono flex items-center justify-between border-b select-none transition-colors active:scale-95 ${
+                    isAuditioning
+                      ? 'bg-purple-600 text-white font-bold'
+                      : isSharp
+                      ? 'bg-[#121624] text-slate-300 border-[#1d2438] hover:bg-[#1a2136]'
+                      : 'bg-[#181f30] text-slate-100 font-bold border-[#20293e] hover:bg-[#232c45]'
                   }`}
+                  title={`Play note ${pitch}`}
                 >
-                  {pitch}
-                </div>
+                  <Volume2 className={`w-2.5 h-2.5 ${isAuditioning ? 'text-white' : 'text-slate-600'}`} />
+                  <span>{pitch}</span>
+                </button>
               );
             })}
           </div>

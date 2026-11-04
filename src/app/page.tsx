@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Sidebar, NavItem } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { AudioUploader } from '@/components/audio/AudioUploader';
@@ -10,6 +10,7 @@ import { StyleSectionBuilder } from '@/components/style/StyleSectionBuilder';
 import { ExportPanel } from '@/components/export/ExportPanel';
 import { ProjectState, TrackData, StyleSection, MidiNote } from '@/types/music';
 import { Disc3, Layers, Music, Sliders, Sparkles } from 'lucide-react';
+import { soundEngine } from '@/lib/audio/soundEngine';
 
 const INITIAL_TRACKS: TrackData[] = [
   {
@@ -156,6 +157,7 @@ const INITIAL_TRACKS: TrackData[] = [
 export default function StudioApp() {
   const [activeTab, setActiveTab] = useState<NavItem>('dashboard');
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [currentStep, setCurrentStep] = useState<number>(0);
 
   const [project, setProject] = useState<ProjectState>({
     id: 'proj-001',
@@ -195,6 +197,46 @@ export default function StudioApp() {
   });
 
   const selectedTrack = project.tracks.find((t) => t.id === project.selectedTrackId) || null;
+
+  // Real-time audio sequencer playback loop
+  useEffect(() => {
+    if (!isPlaying) {
+      setCurrentStep(0);
+      return;
+    }
+
+    const stepIntervalMs = (60 / 124 / 2) * 1000; // 8th note timing at 124 BPM (~242ms)
+    let step = 0;
+
+    const interval = setInterval(() => {
+      // Find all notes playing at this step (modulo 16 steps = 2 bars)
+      const loopStep = step % 16;
+      setCurrentStep(loopStep);
+
+      const hasSolo = project.tracks.some((t) => t.isSolo);
+
+      project.tracks.forEach((track) => {
+        if (track.isMuted) return;
+        if (hasSolo && !track.isSolo) return;
+
+        track.notes.forEach((note) => {
+          const noteStep = Math.floor(note.time * 2);
+          if (noteStep === loopStep) {
+            soundEngine.playNote(
+              note.name,
+              track.category,
+              note.duration,
+              (track.volume / 100) * note.velocity
+            );
+          }
+        });
+      });
+
+      step++;
+    }, stepIntervalMs);
+
+    return () => clearInterval(interval);
+  }, [isPlaying, project.tracks]);
 
   const handleUpdateTrack = (trackId: string, updates: Partial<TrackData>) => {
     setProject((prev) => ({
@@ -237,7 +279,7 @@ export default function StudioApp() {
       } else {
         setProject((prev) => ({ ...prev, analysisProgress: progress }));
       }
-    }, 400);
+    }, 300);
   };
 
   return (
@@ -255,7 +297,7 @@ export default function StudioApp() {
           onExportClick={() => setActiveTab('midi-to-sty')}
         />
 
-        <main className="p-6 space-y-6 overflow-y-auto max-h-[calc(100vh-64px)]">
+        <main className="p-4 md:p-6 space-y-6 overflow-y-auto max-h-[calc(100vh-64px)]">
           {/* View: Dashboard or Audio to MIDI */}
           {(activeTab === 'dashboard' || activeTab === 'audio-to-midi') && (
             <div className="space-y-6">
