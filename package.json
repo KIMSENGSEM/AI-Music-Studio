@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.2",
@@ -24,9 +25,11 @@
     "react-dom": "^18.3.1",
     "tailwind-merge": "^2.5.4",
     "tone": "^14.8.49",
-    "wavesurfer.js": "^7.8.6"
+    "wavesurfer.js": "^7.8.6",
+    "@prisma/client": "^5.22.0"
   },
   "devDependencies": {
+    "prisma": "^5.22.0",
     "@types/node": "^20.17.6",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
