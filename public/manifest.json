@@ -1,0 +1,32 @@
+{
+  "name": "AI Music Studio — Audio to MIDI & Yamaha Style Converter",
+  "short_name": "AI Music Studio",
+  "description": "Convert songs into editable MIDI and authentic Yamaha PSR-S970 Style (.STY) arranger files.",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#07080c",
+  "theme_color": "#0a0c13",
+  "categories": ["music", "multimedia", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

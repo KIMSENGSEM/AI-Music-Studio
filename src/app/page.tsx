@@ -246,7 +246,7 @@ export default function StudioApp() {
       <Sidebar activeTab={activeTab} onSelectTab={setActiveTab} />
 
       {/* Main Workspace Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 pt-14 md:pt-0">
         <Header
           project={project}
           isPlaying={isPlaying}
